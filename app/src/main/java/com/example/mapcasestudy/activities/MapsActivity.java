@@ -3,6 +3,7 @@ package com.example.mapcasestudy.activities;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.FragmentActivity;
+import libs.mjn.prettydialog.PrettyDialog;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -33,6 +34,7 @@ import com.google.android.gms.tasks.Task;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.Objects;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
 
@@ -188,6 +190,97 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public boolean onMarkerClick(Marker marker) {
-        return false;
+        String id = "", name = "", coordinates = "";
+        if (marker.getTag()!=null && marker.getTitle()!=null && marker.getSnippet()!=null) {
+            id = Objects.requireNonNull(marker.getTag()).toString();
+            name = marker.getTitle();
+            coordinates = marker.getSnippet();
+        }
+
+        showTripConfirmationDialog(name, id);
+
+        return true;
+    }
+
+    private void showTripConfirmationDialog(String stationName, String id) {
+
+        PrettyDialog pDialog = new PrettyDialog(this);
+        pDialog
+                .setTitle(stationName)
+                .setMessage(getString(R.string.text_message_confirmation))
+                .addButton(
+                        getString(R.string.text_button_evet),
+                        R.color.pdlg_color_white,
+                        R.color.color_orange,
+                        () -> {
+                            //sendBooking(id);
+                            pDialog.dismiss();
+                        }
+                )
+                .addButton(
+                        getString(R.string.text_button_hayır),
+                        R.color.black,
+                        R.color.color_lightGrey,
+                        () -> pDialog.dismiss()
+                )
+                .setIcon(
+                        R.drawable.ic_help,
+                        R.color.color_yellow,
+                        () -> {
+                            //
+                        })
+                .setAnimationEnabled(true)
+                .show();
+    }
+
+    private void showReservationCompletedDialog() {
+
+        PrettyDialog pDialog = new PrettyDialog(this);
+        pDialog
+                .setTitle(getString(R.string.title_message_rezervasyon))
+                .setMessage(getString(R.string.text_message_rezervasyon))
+                .addButton(
+                        getString(R.string.text_button_tamam),
+                        R.color.pdlg_color_white,
+                        R.color.color_orange,
+                        () -> pDialog.dismiss()
+                )
+                .setIcon(
+                        R.drawable.ic_check,
+                        R.color.color_green,
+                        () -> {
+                            //
+                        })
+                .setAnimationEnabled(true)
+                .show();
+
+    }
+
+    private void showErrorDialog() {
+
+        PrettyDialog pDialog = new PrettyDialog(this);
+        pDialog
+                .setTitle(getString(R.string.title_message_error))
+                .setMessage(getString(R.string.text_message_show_error))
+                .addButton(
+                        getString(R.string.text_button_tekrar),
+                        R.color.pdlg_color_white,
+                        R.color.color_orange,
+                        () -> pDialog.dismiss()
+                )
+                .addButton(
+                        getString(R.string.text_button_vazgeç),
+                        R.color.black,
+                        R.color.color_lightGrey,
+                        () -> pDialog.dismiss()
+                )
+                .setIcon(
+                        R.drawable.ic_error,
+                        R.color.color_red,
+                        () -> {
+                            //
+                        })
+                .setAnimationEnabled(true)
+                .show();
     }
 }

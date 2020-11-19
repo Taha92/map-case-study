@@ -1,4 +1,15 @@
 <resources>
     <string name="app_name">mapCaseStudy</string>
     <string name="title_activity_maps">Map</string>
+
+    <string name="text_button_vazgeç">vazgeç</string>
+    <string name="text_button_tekrar">Tekrar deneyin</string>
+    <string name="text_button_tamam">Tamam</string>
+    <string name="text_button_hayır">Hayır, teşekkürler</string>
+    <string name="text_button_evet">Evet</string>
+    <string name="text_message_rezervasyon">Rota bilgilerinde değişiklik olabilir, böyle bir durumda sizi bilgilendireceğiz</string>
+    <string name="text_message_confirmation">Bu istanyodan ofise gitmek icin yolculuga katilmak ister misiniz?</string>
+    <string name="text_message_show_error">Bir aksilik nedeniyle işleminiz gerçekleştirilemedi, tekrar denemek ister misiniz?</string>
+    <string name="title_message_error">Hata!</string>
+    <string name="title_message_rezervasyon">Rezervasyon tamamlandı</string>
 </resources>
