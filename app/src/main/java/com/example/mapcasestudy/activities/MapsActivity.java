@@ -2,6 +2,7 @@ package com.example.mapcasestudy.activities;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 import libs.mjn.prettydialog.PrettyDialog;
 import retrofit2.Call;
@@ -12,10 +13,12 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.example.mapcasestudy.R;
 import com.example.mapcasestudy.http.RestService;
+import com.example.mapcasestudy.models.BookingResponse;
 import com.example.mapcasestudy.models.StationInfoList;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -28,11 +31,14 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -58,8 +64,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     /**
      * Map marker
      */
-    Marker marker;
+    Marker stationMarker;
+    /**
+     * List to add Lat/Lng
+     */
+    List<LatLng> polylines = null;
 
+    private LatLng origin = null;
+
+    private LatLng destination = null;
+
+    MarkerOptions markerOptionsStation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,7 +87,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void initialize() {
-
+        polylines = new ArrayList<>();
         RestService.initializeSyncHttpService();
         RestService.initializeHttpService();
         fetchLocation();
@@ -120,7 +135,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             BitmapDescriptor icon = BitmapDescriptorFactory.fromResource(R.mipmap.oval);
             markerOptions.icon(icon);
             googleMap.animateCamera(CameraUpdateFactory.newLatLng(latLng));
-            googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15));
+            googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 12));
             googleMap.addMarker(markerOptions);
             m_Map = googleMap;
 
@@ -169,14 +184,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         String[] stringSplit = response.body().get(i).getCenter_coordinates().split(",");
 
                         LatLng latLng = new LatLng(Double.parseDouble(stringSplit[0]), Double.parseDouble(stringSplit[1]));
-                        MarkerOptions markerOptions = new MarkerOptions().position(latLng);
+                        markerOptionsStation  = new MarkerOptions().position(latLng);
                         BitmapDescriptor icon = BitmapDescriptorFactory.fromResource(R.mipmap.group_12);
-                        markerOptions.icon(icon);
+                        markerOptionsStation .icon(icon);
 
-                        marker = googleMap.addMarker(markerOptions);
-                        marker.setTag(response.body().get(i).getId());
-                        marker.setTitle(response.body().get(i).getName());
-                        marker.setSnippet(response.body().get(i).getCenter_coordinates());
+                        stationMarker = googleMap.addMarker(markerOptionsStation);
+                        stationMarker.setTag(response.body().get(i).getId());
+                        stationMarker.setTitle(response.body().get(i).getName());
+                        stationMarker.setSnippet(response.body().get(i).getCenter_coordinates());
+
                     }
                 }
             }
@@ -202,6 +218,75 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return true;
     }
 
+    private void sendBooking(String id) {
+        Call<BookingResponse> bookingRequestCall = RestService.getHttpService().bookingRequest(id);
+
+        bookingRequestCall.enqueue(new Callback<BookingResponse>() {
+            @Override
+            public void onResponse(@NotNull Call<BookingResponse> call, @NotNull Response<BookingResponse> response) {
+
+                if (response.isSuccessful() && response.body() != null) {
+
+                    String[] polyLineArray = response.body().getPolyline();
+
+                    String[] latlong = response.body().getOrigin_coordinates().split(",");
+                    double latitude = Double.parseDouble(latlong[0]);
+                    double longitude = Double.parseDouble(latlong[1]);
+                    LatLng location = new LatLng(latitude, longitude);
+                    origin = location;
+                    polylines.add(location);
+
+                    for (int i=0; i<polyLineArray.length; i++) {
+                        latlong =  polyLineArray[i].split(",");
+                        latitude = Double.parseDouble(latlong[0]);
+                        longitude = Double.parseDouble(latlong[1]);
+                        location = new LatLng(latitude, longitude);
+                        polylines.add(location);
+
+                    }
+                    latlong = response.body().getDestination_coordinates().split(",");
+                    latitude = Double.parseDouble(latlong[0]);
+                    longitude = Double.parseDouble(latlong[1]);
+                    location = new LatLng(latitude, longitude);
+                    destination = location;
+                    polylines.add(location);
+                    Log.e("Poly ",""+polylines);
+
+                    drawPolyLine(m_Map, polylines);
+                    showReservationCompletedDialog();
+                } else {
+                    showErrorDialog();
+                }
+
+            }
+
+            @Override
+            public void onFailure(@NotNull Call<BookingResponse> call, @NotNull Throwable t) {
+                Toast.makeText(getApplicationContext(), "" + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void drawPolyLine(GoogleMap googleMap, List<LatLng> polylines) {
+
+        // Add polylines to the map.
+        // Polylines are useful to show a route or some other connection between points.
+        Polyline polyline1 = googleMap.addPolyline(new PolylineOptions()
+                .clickable(true)
+                .color(ContextCompat.getColor(this, R.color.color_green))
+                .addAll(polylines));
+
+        MarkerOptions markerOptions = new MarkerOptions().position(origin);
+        BitmapDescriptor icon = BitmapDescriptorFactory.fromResource(R.mipmap.oval_copy);
+        markerOptions.icon(icon);
+        googleMap.addMarker(markerOptions);
+
+        markerOptions = new MarkerOptions().position(destination);
+        icon = BitmapDescriptorFactory.fromResource(R.mipmap.oval_copy_2);
+        markerOptions.icon(icon);
+        googleMap.addMarker(markerOptions);
+    }
+
     private void showTripConfirmationDialog(String stationName, String id) {
 
         PrettyDialog pDialog = new PrettyDialog(this);
@@ -213,7 +298,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         R.color.pdlg_color_white,
                         R.color.color_orange,
                         () -> {
-                            //sendBooking(id);
+                            sendBooking(id);
                             pDialog.dismiss();
                         }
                 )
