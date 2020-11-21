@@ -236,14 +236,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     origin = location;
                     polylines.add(location);
 
-                    for (int i=0; i<polyLineArray.length; i++) {
-                        latlong =  polyLineArray[i].split(",");
+                    for (String s : polyLineArray) {
+                        latlong = s.split(",");
                         latitude = Double.parseDouble(latlong[0]);
                         longitude = Double.parseDouble(latlong[1]);
                         location = new LatLng(latitude, longitude);
                         polylines.add(location);
 
                     }
+
                     latlong = response.body().getDestination_coordinates().split(",");
                     latitude = Double.parseDouble(latlong[0]);
                     longitude = Double.parseDouble(latlong[1]);
